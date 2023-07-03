@@ -18,7 +18,7 @@ add_definitions(-DSIMPLE_TX)
 
 target_sources(app PRIVATE ../../main.c)
 target_sources(app PRIVATE ../../config_options.c)
-target_sources(app PRIVATE simple_tx.c)
+target_sources(app PRIVATE main_app.c)
 
 target_sources(app PRIVATE ../../decadriver/deca_device.c)
 
