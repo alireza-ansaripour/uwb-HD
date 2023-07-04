@@ -3,17 +3,7 @@
 #include "deca_regs.h"
 #include <deca_device_api.h>
 
-
-static packet_t timeSync = {
-    .type = PACKET_TS,
-    .src = 0,
-    .seq = 0,
-    .dst = 0xffff,
-    .len = 0
-};
-
 LOG_MODULE_REGISTER(RECEIVER);
-uint8_t rx_buffer[1000];
 packet_t rx_packet;
 void instance_receiver(){
     uint32_t status_reg;
