@@ -19,6 +19,10 @@ add_definitions(-DSIMPLE_TX)
 target_sources(app PRIVATE ../../main.c)
 target_sources(app PRIVATE ../../config_options.c)
 target_sources(app PRIVATE main_app.c)
+target_sources(app PRIVATE instances/timeSync.c)
+target_sources(app PRIVATE instances/receiver.c)
+target_sources(app PRIVATE instances/sender.c)
+target_sources(app PRIVATE instances/instance_common.c)
 
 target_sources(app PRIVATE ../../decadriver/deca_device.c)
 
