@@ -20,8 +20,14 @@ typedef struct {
 }packet_t;
 
 
+typedef struct{
+  uint16_t addr;
+  uint32_t tx_dly_us;
+}instance_info_t; 
+
 void instance_timeSync();
 void instance_sender();
 void instance_receiver();
 void instance_init();
+extern instance_info_t instance_info; 
 #endif

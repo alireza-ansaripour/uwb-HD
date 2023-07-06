@@ -12,7 +12,7 @@
 #define LOG_LEVEL 3
 #include <logging/log.h>
 LOG_MODULE_REGISTER(instance_common);
-
+instance_info_t instance_info; 
 
 /* Default communication configuration. We use default non-STS DW mode. */
 static dwt_config_t default_config = {

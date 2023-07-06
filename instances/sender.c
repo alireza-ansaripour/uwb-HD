@@ -52,7 +52,7 @@ void instance_sender(){
             switch (rx_frame.type){
             case PACKET_TS:
                 rx_time = dwt_readrxtimestamphi32();
-                tx_time = (100000 * UUS_TO_DWT_TIME) >> 8;
+                tx_time = (instance_info.tx_dly_us * UUS_TO_DWT_TIME) >> 8;
                 tx_time += rx_time;
                 dwt_setdelayedtrxtime(tx_time);
                 start_TX();
