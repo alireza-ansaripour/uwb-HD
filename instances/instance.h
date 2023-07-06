@@ -2,7 +2,7 @@
 #define _INSTANCE_H
 
 #include "deca_types.h"
-
+#include <zephyr.h>
 typedef enum{
     PACKET_TS = 0,
     PACKET_DATA
