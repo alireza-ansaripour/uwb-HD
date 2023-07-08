@@ -3,9 +3,10 @@
 #include "deca_regs.h"
 #include <deca_device_api.h>
 #include "shared_defines.h"
+#include "shared_functions.h"
 #include <sys/printk.h>
-#define TX_FRAME_LEN 100
-
+#define TX_FRAME_LEN 900
+#define TX_ANT_DLY 16385
 
 static packet_t tx_frame = {
     .type = PACKET_DATA,
@@ -22,15 +23,23 @@ static packet_t rx_frame;
 LOG_MODULE_REGISTER(SENDER);
 void start_TX();
 
-uint32_t rx_time, tx_time, previous_ts;
+uint32_t rx_time, previous_ts;
+uint64_t tx_time;
 uint64_t rx_ts_64, prev_ts;
 uint64_t rx_time_us;
+
+
+uint64_t rx_ts_64, tx_ts_64, prev;
+uint32_t final_tx_time;
 void instance_sender(){
     uint32_t status_reg;
     uint16_t frame_len;
     prev_ts = 0;
     LOG_INF("Starting Sender");
+    tx_frame.src = instance_info.addr;
+    tx_frame.dst = instance_info.dst_addr;
     instance_init();
+    dwt_settxantennadelay(TX_ANT_DLY);
     while(1){
         dwt_rxenable(DWT_START_RX_IMMEDIATE);
         while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_ERR ))){ /* spin */ };
@@ -48,14 +57,16 @@ void instance_sender(){
             frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_BIT_MASK;
             dwt_readrxdata((uint8_t *)&rx_frame, frame_len, 0); /* No need to read the FCS/CRC. */
             
-            LOG_INF("Frame type %d", rx_frame.type);
+            
             switch (rx_frame.type){
             case PACKET_TS:
-                rx_time = dwt_readrxtimestamphi32();
-                tx_time = (instance_info.tx_dly_us * UUS_TO_DWT_TIME) >> 8;
-                tx_time += rx_time;
-                dwt_setdelayedtrxtime(tx_time);
+                rx_ts_64 = get_rx_timestamp_u64();
+                final_tx_time = (rx_ts_64 + (instance_info.tx_dly_us * UUS_TO_DWT_TIME)) >> 8;
+                dwt_setdelayedtrxtime(final_tx_time);
                 start_TX();
+                // LOG_INF("TS MSG %d", tx_frame.seq);
+                // LOG_INF("__________________");
+                prev = rx_ts_64;
                 break;
             
             default:
@@ -80,16 +91,19 @@ void instance_sender(){
         
 }
 
-
+uint32_t curr_time;
 void start_TX(){
     int res;
     tx_frame.seq ++;
-    //dwt_forcetrxoff();
-    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
+     
     dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
+    curr_time = dwt_readsystimestamphi32();
     res = dwt_starttx(DWT_START_TX_DELAYED);
+    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
+    //LOG_INF("DIFF %ud, %x, %x",  tx_time - curr_time, tx_time , curr_time);
     if (res != DWT_SUCCESS){
-      LOG_ERR("TX failed");
+      LOG_ERR("TX failed %ud",  final_tx_time > curr_time);
+      return;
     }
     /* Poll DW IC until TX frame sent event set. See NOTE 4 below.
         * STATUS register is 4 bytes long but, as the event we are looking at

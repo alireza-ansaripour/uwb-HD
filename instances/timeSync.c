@@ -32,7 +32,7 @@ void instance_timeSync(){
 
         /* Clear TX frame sent event. */
         dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
-        k_sleep(K_MSEC(1000));
+        k_sleep(K_MSEC(100));
         // LOG_INF("TX Frame Sent");
 
     }

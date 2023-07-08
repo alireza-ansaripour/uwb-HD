@@ -22,6 +22,7 @@ typedef struct {
 
 typedef struct{
   uint16_t addr;
+  uint16_t dst_addr;
   uint32_t tx_dly_us;
 }instance_info_t; 
 
