@@ -44,6 +44,7 @@ void instance_sender(){
         dwt_rxenable(DWT_START_RX_IMMEDIATE);
         while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_ERR ))){ /* spin */ };
         if (status_reg & SYS_STATUS_ALL_RX_ERR) {
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
             if (status_reg & SYS_STATUS_RXPHE_BIT_MASK)  LOG_ERR("receive error: RXPHE");  // Phy. Header Error
             if (status_reg & SYS_STATUS_RXFCE_BIT_MASK)  LOG_ERR("receive error: RXFCE");  // Rcvd Frame & CRC Error
             if (status_reg & SYS_STATUS_RXFSL_BIT_MASK)  LOG_ERR("receive error: RXFSL");  // Frame Sync Loss
@@ -52,10 +53,11 @@ void instance_sender(){
             if (status_reg & SYS_STATUS_CIAERR_BIT_MASK) LOG_ERR("receive error: CIAERR"); //
         }
         if (status_reg & SYS_STATUS_RXFCG_BIT_MASK) {
-
+            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG_BIT_MASK);
+            dwt_forcetrxoff();
             /* A frame has been received, copy it to our local buffer. */
             frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_BIT_MASK;
-            dwt_readrxdata((uint8_t *)&rx_frame, frame_len, 0); /* No need to read the FCS/CRC. */
+            dwt_readrxdata((uint8_t *)&rx_frame, HDR_LEN, 0); /* No need to read the FCS/CRC. */
             
             
             switch (rx_frame.type){
@@ -70,20 +72,17 @@ void instance_sender(){
                 break;
             
             default:
+                LOG_INF("RX frame len: %d, type %d", frame_len, rx_frame.type);
                 break;
             }
-            /* Clear good RX frame event in the DW IC status register. */
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG_BIT_MASK);
+            // /* Clear good RX frame event in the DW IC status register. */
+            
 
-            // {
-            //     char len[5];
-            //     sprintf(len, "len %d", frame_len-FCS_LEN);
-            //     LOG_HEXDUMP_INF((char*)&rx_buffer, frame_len-FCS_LEN, (char*) &len);
-            // }
-        }
-        else {
-            /* Clear RX error events in the DW IC status register. */
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
+            // // {
+            // //     char len[5];
+            // //     sprintf(len, "len %d", frame_len-FCS_LEN);
+            // //     LOG_HEXDUMP_INF((char*)&rx_buffer, frame_len-FCS_LEN, (char*) &len);
+            // // }
         }
 
     }
@@ -114,4 +113,22 @@ void start_TX(){
 
     /* Clear TX frame sent event. */
     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
+    dwt_forcetrxoff();
+
+    tx_frame.seq ++;
+    dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
+    
+    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
+    res = dwt_starttx(DWT_START_TX_IMMEDIATE);
+    if (res != DWT_SUCCESS){
+      LOG_ERR("TX failed %ud",  final_tx_time > curr_time);
+      return;
+    }
+
+     while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS_BIT_MASK))
+    { /* spin */ };
+
+    /* Clear TX frame sent event. */
+    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
+    dwt_forcetrxoff();
 }

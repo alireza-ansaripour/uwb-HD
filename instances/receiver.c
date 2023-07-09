@@ -56,12 +56,13 @@ void instance_receiver(){
                 // rx_type = DWT_START_RX_IMMEDIATE;
                 
                 ret = dwt_rxenable(rx_type);
-                // LOG_INF("TS");
+                LOG_INF("TS");
                 break;
               case PACKET_DATA:
                 rx_type = DWT_START_RX_IMMEDIATE;
-                LOG_INF("DATA:DST= %d, SEQ= %d", rx_packet.dst, rx_packet.seq);
                 ret = dwt_rxenable(rx_type);
+                LOG_INF("DATA:DST= %d, SEQ= %d", rx_packet.dst, rx_packet.seq);
+                
                 break;
 
               
