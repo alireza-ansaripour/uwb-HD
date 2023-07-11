@@ -5,7 +5,7 @@
 #include "shared_defines.h"
 #include "shared_functions.h"
 #include <sys/printk.h>
-#define TX_FRAME_LEN 900
+#define TX_FRAME_LEN 50
 #define TX_ANT_DLY 16385
 
 static packet_t tx_frame = {
@@ -22,6 +22,7 @@ static packet_t rx_frame;
 
 LOG_MODULE_REGISTER(SENDER);
 void start_TX();
+int transmit(uint8_t type);
 
 uint32_t rx_time, previous_ts;
 uint64_t tx_time;
@@ -91,44 +92,38 @@ void instance_sender(){
 }
 
 uint32_t curr_time;
+
+
 void start_TX(){
     int res;
     tx_frame.seq ++;
-     
-    dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
-    curr_time = dwt_readsystimestamphi32();
-    res = dwt_starttx(DWT_START_TX_DELAYED);
-    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
-    //LOG_INF("DIFF %ud, %x, %x",  tx_time - curr_time, tx_time , curr_time);
+    res = transmit(DWT_START_TX_DELAYED);
     if (res != DWT_SUCCESS){
-      LOG_ERR("TX failed %ud",  final_tx_time > curr_time);
-      return;
+        LOG_ERR("TX failed");
+        return;
     }
-    /* Poll DW IC until TX frame sent event set. See NOTE 4 below.
-        * STATUS register is 4 bytes long but, as the event we are looking at
-        * is in the first byte of the register, we can use this simplest API
-        * function to access it.*/
-    while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS_BIT_MASK))
-    { /* spin */ };
-
-    /* Clear TX frame sent event. */
-    dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
-    dwt_forcetrxoff();
-
-    tx_frame.seq ++;
-    dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
+    for (uint8_t i = 0; i < 30; i++){
+        tx_frame.seq ++;
+        res = transmit(DWT_START_TX_IMMEDIATE);
+        if (res != DWT_SUCCESS){
+            LOG_ERR("TX failed %ud", i);
+            return;
+        }
+    }
     
+}
+
+
+int transmit(uint8_t type){
+    int res;
+    dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
     dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
-    res = dwt_starttx(DWT_START_TX_IMMEDIATE);
+    res = dwt_starttx(type);
     if (res != DWT_SUCCESS){
-      LOG_ERR("TX failed %ud",  final_tx_time > curr_time);
-      return;
+      return res;
     }
-
-     while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS_BIT_MASK))
-    { /* spin */ };
-
-    /* Clear TX frame sent event. */
+    while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS_BIT_MASK)){ /* spin */ };
     dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
     dwt_forcetrxoff();
+    return DWT_SUCCESS;
 }

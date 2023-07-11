@@ -17,15 +17,15 @@ instance_info_t instance_info;
 /* Default communication configuration. We use default non-STS DW mode. */
 static dwt_config_t default_config = {
     .chan            = 5,               /* Channel number. */
-    .txPreambLength  = DWT_PLEN_64,    /* Preamble length. Used in TX only. */
-    .rxPAC           = DWT_PAC8,        /* Preamble acquisition chunk size. Used in RX only. */
+    .txPreambLength  = DWT_PLEN_256,    /* Preamble length. Used in TX only. */
+    .rxPAC           = DWT_PAC16,        /* Preamble acquisition chunk size. Used in RX only. */
     .txCode          = 9,               /* TX preamble code. Used in TX only. */
     .rxCode          = 9,               /* RX preamble code. Used in RX only. */
     .sfdType         = DWT_SFD_DW_8,    /* 0 to use standard 8 symbol SFD */
     .dataRate        = DWT_BR_6M8,      /* Data rate. */
     .phrMode         = DWT_PHRMODE_EXT, /* PHY header mode. */
     .phrRate         = DWT_PHRRATE_STD, /* PHY header rate. */
-    .sfdTO           = (129 + 8 - 8),   /* SFD timeout */
+    .sfdTO           = (8000 + 8 - 8),   /* SFD timeout */
     .stsMode         = DWT_STS_MODE_OFF,
     .stsLength       = DWT_STS_LEN_64,  /* STS length, see allowed values in Enum dwt_sts_lengths_e */
     .pdoaMode        = DWT_PDOA_M0      /* PDOA mode off */
@@ -38,6 +38,7 @@ int instance_radio_config(){
         LOG_ERR("CONFIG FAILED");
         return DWT_ERROR;
     }
+    txconfig_options.power = 0xffffffff;
     dwt_configuretxrf(&txconfig_options);
     return DWT_SUCCESS;
 

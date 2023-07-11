@@ -1,18 +1,22 @@
 #include "instance.h"
 #include "logging/log.h"
 #include "deca_regs.h"
+#include <sys/printk.h>
 #include "shared_defines.h"
 #include <deca_device_api.h>
 #define RX_ANT_DLY 16385
 
 LOG_MODULE_REGISTER(RECEIVER);
 packet_t rx_packet;
+int i = 0;
 void instance_receiver(){
     uint8_t rx_type;
+    uint16_t loss = 0;
     uint32_t status_reg;
     uint16_t frame_len;
     uint32_t rx_time, tx_time;
     int ret;
+    uint16_t rx_seq = 1;
     LOG_INF("Starting Receiver");
     instance_init();
     dwt_setrxantennadelay(RX_ANT_DLY);
@@ -28,12 +32,12 @@ void instance_receiver(){
         }
         while (!((status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG_BIT_MASK | SYS_STATUS_ALL_RX_ERR ))){ /* spin */ };
         if (status_reg & SYS_STATUS_ALL_RX_ERR) {
-            if (status_reg & SYS_STATUS_RXPHE_BIT_MASK)  LOG_ERR("receive error: RXPHE");  // Phy. Header Error
-            if (status_reg & SYS_STATUS_RXFCE_BIT_MASK)  LOG_ERR("receive error: RXFCE");  // Rcvd Frame & CRC Error
-            if (status_reg & SYS_STATUS_RXFSL_BIT_MASK)  LOG_ERR("receive error: RXFSL");  // Frame Sync Loss
-            if (status_reg & SYS_STATUS_RXSTO_BIT_MASK)  LOG_ERR("receive error: RXSTO");  // Rcv Timeout
-            if (status_reg & SYS_STATUS_ARFE_BIT_MASK)   LOG_ERR("receive error: ARFE");   // Rcv Frame Error
-            if (status_reg & SYS_STATUS_CIAERR_BIT_MASK) LOG_ERR("receive error: CIAERR"); //
+            // if (status_reg & SYS_STATUS_RXPHE_BIT_MASK)  LOG_ERR("receive error: RXPHE");  // Phy. Header Error
+            // if (status_reg & SYS_STATUS_RXFCE_BIT_MASK)  LOG_ERR("receive error: RXFCE");  // Rcvd Frame & CRC Error
+            // if (status_reg & SYS_STATUS_RXFSL_BIT_MASK)  LOG_ERR("receive error: RXFSL");  // Frame Sync Loss
+            // if (status_reg & SYS_STATUS_RXSTO_BIT_MASK)  LOG_ERR("receive error: RXSTO");  // Rcv Timeout
+            // if (status_reg & SYS_STATUS_ARFE_BIT_MASK)   LOG_ERR("receive error: ARFE");   // Rcv Frame Error
+            // if (status_reg & SYS_STATUS_CIAERR_BIT_MASK) LOG_ERR("receive error: CIAERR"); //
             rx_type = DWT_START_RX_IMMEDIATE;
             ret = dwt_rxenable(rx_type);
         }
@@ -46,26 +50,42 @@ void instance_receiver(){
             //LOG_INF("Frame type %d", rx_packet.type);
             switch(rx_packet.type){
               case PACKET_TS:
+                i++;
+                if(i == 20
+                0){
+                    printk("LOSS= %ud\n", loss);
+
+                }
                 //rx_time = dwt_readsystimestamphi32();
                 rx_time = dwt_readrxtimestamphi32();
                 tx_time = (instance_info.tx_dly_us * UUS_TO_DWT_TIME) >> 8;
                 tx_time += rx_time;
                 tx_time &= 0xFFFFFFFEUL;
                 dwt_setdelayedtrxtime(tx_time);
-                rx_type = DWT_START_RX_DELAYED;
-                // rx_type = DWT_START_RX_IMMEDIATE;
+                // rx_type = DWT_START_RX_DELAYED;
+                rx_type = DWT_START_RX_IMMEDIATE;
                 
                 ret = dwt_rxenable(rx_type);
-                LOG_INF("TS");
+                // printk("SEQ= %d\n", rx_seq);
                 break;
               case PACKET_DATA:
                 rx_type = DWT_START_RX_IMMEDIATE;
                 ret = dwt_rxenable(rx_type);
-                LOG_INF("DATA:DST= %d, SEQ= %d", rx_packet.dst, rx_packet.seq);
+                if (rx_packet.dst != instance_info.addr)
+                    continue;
+                
+                if (rx_packet.seq == rx_seq){
+                    rx_seq++;
+                }else{
+                    if (rx_packet.seq - rx_seq == 1)
+                        continue;
+                    printk("LOSS= %ud, %ud\n", rx_packet.seq, rx_packet.seq - rx_seq);
+                    loss += rx_packet.seq - rx_seq;
+                    rx_seq  = rx_packet.seq + 1;
+                }
+                
                 
                 break;
-
-              
             }
             /* Clear good RX frame event in the DW IC status register. */
             

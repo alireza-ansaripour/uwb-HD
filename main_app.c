@@ -29,21 +29,21 @@ int app_main(void){
     case 0xce95d98d:
         LOG_INF("Node 3");
         instance_info.addr = 0x0003;
-        instance_info.tx_dly_us = 10300;
+        instance_info.tx_dly_us = 20300;
         instance_info.dst_addr = 0x0004;
         instance_sender();
         break;
 
     case  0xe8d125b7:
-        LOG_INF("Nonde 2");
+        LOG_INF("Node 2");
         instance_info.addr = 0x0002;
         instance_info.tx_dly_us = 10000;
         instance_receiver();
         break;
 
     case 0xf01065cf:
-        LOG_INF("Nonde 5");
-        instance_info.addr = 0x0005;
+        LOG_INF("Node 4");
+        instance_info.addr = 0x0004;
         instance_info.tx_dly_us = 10250;
         instance_receiver();
         break;
