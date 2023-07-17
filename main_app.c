@@ -22,12 +22,20 @@ int app_main(void){
 
     case 0x2e0bc9bb:
         LOG_INF("Sender 1");
+        // default_config;
         instance_info.addr = 0x0001;
         instance_info.tx_dly_us = 2100;
         instance_info.dst_addr = 0x0001;
         instance_sender();
         break;
 
+    case 0x920b25f:
+        LOG_INF("Sender 2");
+        instance_info.addr = 0x0002;
+        instance_info.tx_dly_us = 2100;
+        instance_info.dst_addr = 0x0002;
+        instance_sender();
+    break;
 
     case 0x29ec415d:
         LOG_INF("Receiver 1");
@@ -37,13 +45,6 @@ int app_main(void){
         break;
 
 
-    case 0x920b25f:
-        LOG_INF("Sender 2");
-        instance_info.addr = 0x0002;
-        instance_info.tx_dly_us = 2100;
-        instance_info.dst_addr = 0x0002;
-        instance_sender();
-    break;
 
     case 0xce95d98d:
         LOG_INF("Receiver 2");

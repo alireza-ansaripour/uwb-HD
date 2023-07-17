@@ -15,7 +15,7 @@ LOG_MODULE_REGISTER(instance_common);
 instance_info_t instance_info; 
 
 /* Default communication configuration. We use default non-STS DW mode. */
-static dwt_config_t default_config = {
+dwt_config_t default_config = {
     .chan            = 9,               /* Channel number. */
     .txPreambLength  = DWT_PLEN_128,    /* Preamble length. Used in TX only. */
     .rxPAC           = DWT_PAC8,        /* Preamble acquisition chunk size. Used in RX only. */

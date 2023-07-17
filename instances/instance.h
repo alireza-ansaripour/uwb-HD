@@ -1,6 +1,6 @@
 #ifndef _INSTANCE_H
 #define _INSTANCE_H
-
+#include "deca_device_api.h"
 #include "deca_types.h"
 #include <zephyr.h>
 typedef enum{
