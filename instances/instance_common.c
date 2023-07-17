@@ -16,9 +16,9 @@ instance_info_t instance_info;
 
 /* Default communication configuration. We use default non-STS DW mode. */
 static dwt_config_t default_config = {
-    .chan            = 5,               /* Channel number. */
-    .txPreambLength  = DWT_PLEN_256,    /* Preamble length. Used in TX only. */
-    .rxPAC           = DWT_PAC16,        /* Preamble acquisition chunk size. Used in RX only. */
+    .chan            = 9,               /* Channel number. */
+    .txPreambLength  = DWT_PLEN_128,    /* Preamble length. Used in TX only. */
+    .rxPAC           = DWT_PAC8,        /* Preamble acquisition chunk size. Used in RX only. */
     .txCode          = 9,               /* TX preamble code. Used in TX only. */
     .rxCode          = 9,               /* RX preamble code. Used in RX only. */
     .sfdType         = DWT_SFD_DW_8,    /* 0 to use standard 8 symbol SFD */
@@ -31,6 +31,27 @@ static dwt_config_t default_config = {
     .pdoaMode        = DWT_PDOA_M0      /* PDOA mode off */
 };
 extern dwt_txconfig_t txconfig_options;
+
+
+void gpio_set(uint16_t port){
+	dwt_or16bitoffsetreg(GPIO_OUT_ID, 0, (port));
+}
+
+void gpio_reset(uint16_t port){
+	dwt_and16bitoffsetreg(GPIO_OUT_ID, 0, (uint16_t)(~(port)));
+}
+
+#define SET_OUPUT_GPIOs 0xFFFF & ~(GPIO_DIR_GDP4_BIT_MASK | GPIO_DIR_GDP2_BIT_MASK | GPIO_DIR_GDP3_BIT_MASK)
+#define ENABLE_ALL_GPIOS_MASK 0x200000
+
+void init_LEDs(){
+	dwt_enablegpioclocks();
+	dwt_write32bitoffsetreg(GPIO_MODE_ID, 0, ENABLE_ALL_GPIOS_MASK);
+	dwt_write16bitoffsetreg(GPIO_OUT_ID, 0, 0x0);
+	dwt_write16bitoffsetreg(GPIO_DIR_ID, 0, SET_OUPUT_GPIOs);
+
+}
+
 
 
 int instance_radio_config(){
@@ -61,11 +82,13 @@ void instance_init(){
 
     /* Need to make sure DW IC is in IDLE_RC before proceeding */
     while (!dwt_checkidlerc()) { /* spin */ };
+    init_LEDs();
 
     if (dwt_initialise(DWT_DW_INIT) == DWT_ERROR) {
         LOG_ERR("INIT FAILED");
         while (1) { /* spin */ };
     }
+
 
     /* Enabling LEDs here for debug so that for each TX the D1 LED will flash
      * on DW3000 red eval-shield boards. */

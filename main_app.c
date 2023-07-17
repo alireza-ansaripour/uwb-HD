@@ -15,36 +15,41 @@ int app_main(void){
     uint32_t dev_id = NRF_FICR->DEVICEADDR[0];
     switch (dev_id)
     {
-    case  0x2e0bc9bb:
+    case  0xf5330684:
         instance_timeSync();
         break;
-    case 0xf5330684:
-        LOG_INF("Node 1");
+
+
+    case 0x2e0bc9bb:
+        LOG_INF("Sender 1");
         instance_info.addr = 0x0001;
-        instance_info.tx_dly_us = 10200;
-        instance_info.dst_addr = 0x0002;
+        instance_info.tx_dly_us = 2100;
+        instance_info.dst_addr = 0x0001;
         instance_sender();
         break;
 
-    case 0xce95d98d:
-        LOG_INF("Node 3");
-        instance_info.addr = 0x0003;
-        instance_info.tx_dly_us = 20300;
-        instance_info.dst_addr = 0x0004;
-        instance_sender();
-        break;
 
-    case  0xe8d125b7:
-        LOG_INF("Node 2");
-        instance_info.addr = 0x0002;
-        instance_info.tx_dly_us = 10000;
+    case 0x29ec415d:
+        LOG_INF("Receiver 1");
+        instance_info.addr = 0x0001;
+        instance_info.tx_dly_us = 2000;
         instance_receiver();
         break;
 
-    case 0xf01065cf:
-        LOG_INF("Node 4");
-        instance_info.addr = 0x0004;
-        instance_info.tx_dly_us = 10250;
+
+    case 0x920b25f:
+        LOG_INF("Sender 2");
+        instance_info.addr = 0x0002;
+        instance_info.tx_dly_us = 2100;
+        instance_info.dst_addr = 0x0002;
+        instance_sender();
+    break;
+
+    case 0xce95d98d:
+        LOG_INF("Receiver 2");
+        instance_info.addr = 0x0002;
+        instance_info.tx_dly_us = 2000;
+        
         instance_receiver();
         break;
 

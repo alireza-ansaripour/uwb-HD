@@ -19,6 +19,7 @@ typedef struct {
     uint32_t payload[1000]
 }packet_t;
 
+extern dwt_config_t default_config;
 
 typedef struct{
   uint16_t addr;
@@ -26,6 +27,12 @@ typedef struct{
   uint32_t tx_dly_us;
 }instance_info_t; 
 
+#define LED_RX GPIO_DIR_GDP2_BIT_MASK
+#define LED_TX GPIO_DIR_GDP3_BIT_MASK
+#define PORT_DE GPIO_DIR_GDP4_BIT_MASK
+
+void gpio_set(uint16_t port);
+void gpio_reset(uint16_t port);
 void instance_timeSync();
 void instance_sender();
 void instance_receiver();
