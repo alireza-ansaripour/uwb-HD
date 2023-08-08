@@ -18,7 +18,7 @@ instance_info_t instance_info;
 dwt_config_t default_config = {
     .chan            = 9,               /* Channel number. */
     .txPreambLength  = DWT_PLEN_128,    /* Preamble length. Used in TX only. */
-    .rxPAC           = DWT_PAC8,        /* Preamble acquisition chunk size. Used in RX only. */
+    .rxPAC           = DWT_PAC32,        /* Preamble acquisition chunk size. Used in RX only. */
     .txCode          = 9,               /* TX preamble code. Used in TX only. */
     .rxCode          = 9,               /* RX preamble code. Used in RX only. */
     .sfdType         = DWT_SFD_DW_8,    /* 0 to use standard 8 symbol SFD */
@@ -82,7 +82,7 @@ void instance_init(){
 
     /* Need to make sure DW IC is in IDLE_RC before proceeding */
     while (!dwt_checkidlerc()) { /* spin */ };
-    init_LEDs();
+    // init_LEDs();
 
     if (dwt_initialise(DWT_DW_INIT) == DWT_ERROR) {
         LOG_ERR("INIT FAILED");

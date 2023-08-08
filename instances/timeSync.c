@@ -34,7 +34,7 @@ void instance_timeSync(){
         /* Clear TX frame sent event. */
         dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
         gpio_reset(PORT_DE);
-        k_sleep(K_SECONDS(2));
+        k_sleep(K_SECONDS(3));
         // LOG_INF("TX Frame Sent");
 
     }
