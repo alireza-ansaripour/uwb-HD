@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "zephyr.h": "c",
-        "instance.h": "c"
+        "instance.h": "c",
+        "math.h": "c",
+        "deca_device_api.h": "c"
     }
 }

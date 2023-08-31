@@ -19,12 +19,12 @@ int app_main(void){
     uint32_t dev_id = NRF_FICR->DEVICEADDR[0];
     switch (dev_id)
     {
-    case  0xf965bd2e:
+    case 0xe659b9d4:
        instance_timeSync();
        break;
 
 
-    case 0x2e0bc9bb:
+    case 0xccd1a0cf:
        LOG_INF("Sender 1");
         
        instance_info.addr = 0x0001;

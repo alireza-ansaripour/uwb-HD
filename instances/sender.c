@@ -25,6 +25,8 @@
 
 K_THREAD_STACK_DEFINE(my_stack_area, MY_STACK_SIZE);
 struct k_thread my_thread_data;
+uint64_t tx_timestamp;
+
 
 
 /* Continuous frame duration, in milliseconds. */
@@ -38,29 +40,9 @@ static packet_t tx_frame = {
     .len = TX_FRAME_LEN
 };
 
-
-
-
-
-//static void thread_fn(void *a1, void* a2, void*a3){
-//    while (1){
-//        printk("ALI\n");
-//        k_sleep(K_SECONDS(1));
-//    }
-    
-//}
-
-//static void thread_fn2(void *a1, void* a2, void*a3){
-//    while (1){
-//        printk("ALI2\n");
-//        k_sleep(K_SECONDS(1));
-//    }
-    
-//}
-
-
-
 static packet_t rx_frame;
+ts_info_t * ts_info = NULL;
+
 
 LOG_MODULE_REGISTER(SENDER);
 
@@ -74,22 +56,14 @@ static void rx_to_cb(const dwt_cb_data_t *cb_data);
 static void rx_err_cb(const dwt_cb_data_t *cb_data);
 static void tx_conf_cb(const dwt_cb_data_t *cb_data);
 
-uint32_t rx_time, previous_ts;
-uint64_t tx_time;
-uint64_t rx_ts_64, prev_ts;
-uint64_t rx_time_us;
-
-
-uint64_t rx_ts_64, tx_ts_64, prev;
-uint32_t final_tx_time;
-uint8_t tx_stat = 10;
 static int8_t uCurrentTrim_val;
 int cnt = 0;
 static void start_sending_data(void *a1, void* a2, void*a3){
     int res;
-    start_TX();
-    k_sleep(K_MSEC(2500));
-    LOG_INF("DONE TX %d", cnt);
+    //k_sleep(K_MSEC(100));
+    //start_TX();
+    k_sleep(K_MSEC(ts_info->tx_session_duration - 100));
+    //LOG_INF("DONE TX %d", cnt);
     cnt++;
     dwt_forcetrxoff();
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
@@ -105,7 +79,6 @@ float abs(float num){
 void instance_sender(){
   uint32_t status_reg;
   uint16_t frame_len;
-  prev_ts = 0;
   LOG_INF("Starting Sender");
   tx_frame.src = instance_info.addr;
   tx_frame.dst = instance_info.dst_addr;
@@ -140,16 +113,13 @@ void instance_sender(){
 }
 int c = 1, GXX=0;
 
-uint64_t tx_timestamp;
+
 int res;
 
 
 uint32_t curr_time;
 void start_TX(){
     int res;
-    rx_ts_64 = get_rx_timestamp_u64();
-    final_tx_time = (rx_ts_64 + (instance_info.tx_dly_us * UUS_TO_DWT_TIME)) >> 8;
-    dwt_setdelayedtrxtime(final_tx_time);
     LOG_INF("START TX");
     res = transmit(DWT_START_TX_IMMEDIATE);
     
@@ -165,9 +135,10 @@ int transmit(uint8_t type){
     
     //dwt_configcontinuousframemode(CONT_FRAME_PERIOD, 9);
     
-    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
+    
     dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
     res = dwt_starttx(type);
+    dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
     if (res != DWT_SUCCESS){
       LOG_ERR("TX failed");
       return res;
@@ -182,18 +153,16 @@ static void tx_conf_cb(const dwt_cb_data_t *cb_data){
     if (tx_frame.seq != 0xffff)
         tx_frame.seq++;
 
-    if (tx_frame.seq == TX_PER_ROUND){
+    if (tx_frame.seq == ts_info->tx_packet_num){
        dwt_forcetrxoff();
-       tx_stat = 0;
        return;
     }
 
-    // tx_timestamp = get_tx_timestamp_u64();
-    // tx_timestamp +=  (1900 * UUS_TO_DWT_TIME);
-    // tx_timestamp = tx_timestamp >> 8;
-    // dwt_setdelayedtrxtime(tx_timestamp);
-    // dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
-    res = transmit(DWT_START_TX_IMMEDIATE);
+    tx_timestamp = get_tx_timestamp_u64();
+    tx_timestamp +=  (1900 * UUS_TO_DWT_TIME);
+    tx_timestamp = tx_timestamp >> 8;
+    dwt_setdelayedtrxtime(tx_timestamp);
+    res = transmit(DWT_START_TX_DELAYED);
     if (res != DWT_SUCCESS){
         LOG_ERR("TX failed");
         return;
@@ -216,19 +185,25 @@ k_tid_t my_tid;
 static void rx_ok_cb(const dwt_cb_data_t *cb_data){
     float xtalOffset_ppm;
     dwt_forcetrxoff();
+    
     /* A frame has been received, copy it to our local buffer. */
-    dwt_readrxdata((uint8_t *)&rx_frame, HDR_LEN, 0); /* No need to read the FCS/CRC. */
+    dwt_readrxdata((uint8_t *)&rx_frame, 17, 0); /* No need to read the FCS/CRC. */
     switch (rx_frame.type){
     case PACKET_TS:
         TS_recevied++;
-        if (TS_recevied < 100){
-            tx_frame.seq = 0;
-        }else{
-            tx_frame.seq = 0xffff;
+        tx_frame.seq = 0;
+        ts_info = (ts_info_t *) rx_frame.payload;
+        tx_timestamp = get_rx_timestamp_u64();
+        tx_timestamp +=  (1200 * UUS_TO_DWT_TIME);
+        tx_timestamp = tx_timestamp >> 8;
+        dwt_setdelayedtrxtime(tx_timestamp);
+        res = transmit(DWT_START_TX_DELAYED);
+        if (res != DWT_SUCCESS){
+            LOG_ERR("TX failed");
+            return;
         }
-        tx_stat = 1;
-        
 
+        //LOG_INF("TS_INFO: NUM: %d, wait %ld", ts_info->tx_packet_num, ts_info->tx_session_duration);
         my_tid = k_thread_create(&my_thread_data, my_stack_area,
                                  K_THREAD_STACK_SIZEOF(my_stack_area),
                                  start_sending_data,
@@ -249,31 +224,6 @@ static void rx_err_cb(const dwt_cb_data_t *cb_data){
     dwt_forcetrxoff();
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
-
-
-void start_tx_continues(){
-    for (size_t i = 0; i < 100; i++){
-        tx_frame.seq = 0;
-        dwt_forcetrxoff();
-        tx_stat = 1;
-        start_TX();
-        while(tx_stat == 1){}
-        LOG_INF("TX DONE");
-    }
-    while (1){
-        LOG_INF("LAST TX");
-        tx_frame.seq = 0xffff;
-        dwt_forcetrxoff();
-        tx_stat = 1;
-        start_TX();
-        while(tx_stat == 1){}
-        LOG_INF("LAST TX DONE");
-
-    }
-    
-  
-}
-
 
 
 

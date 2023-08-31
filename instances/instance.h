@@ -16,8 +16,13 @@ typedef struct {
     uint16_t seq;
     uint16_t dst;
     uint32_t len;
-    uint32_t payload[1000]
-}packet_t;
+    uint8_t payload[1000]
+}packet_t __attribute__((packed));
+
+typedef struct{
+  uint16_t tx_packet_num;
+  uint16_t tx_session_duration;
+}ts_info_t __attribute__((packed));
 
 extern dwt_config_t default_config;
 
