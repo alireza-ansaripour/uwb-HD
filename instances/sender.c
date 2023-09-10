@@ -153,16 +153,17 @@ static void tx_conf_cb(const dwt_cb_data_t *cb_data){
     if (tx_frame.seq != 0xffff)
         tx_frame.seq++;
 
-    if (tx_frame.seq == ts_info->tx_packet_num){
+    if (tx_frame.seq > ts_info->tx_packet_num){
        dwt_forcetrxoff();
        return;
     }
-
-    tx_timestamp = get_tx_timestamp_u64();
-    tx_timestamp +=  (1900 * UUS_TO_DWT_TIME);
-    tx_timestamp = tx_timestamp >> 8;
     dwt_setdelayedtrxtime(tx_timestamp);
     res = transmit(DWT_START_TX_DELAYED);
+    //tx_timestamp = get_tx_timestamp_u64();
+    //tx_timestamp +=  (1900 * UUS_TO_DWT_TIME);
+    tx_timestamp +=  (1700 * UUS_TO_DWT_TIME) >> 8;
+    //tx_timestamp = tx_timestamp >> 8;
+    
     if (res != DWT_SUCCESS){
         LOG_ERR("TX failed");
         return;
@@ -187,17 +188,20 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
     dwt_forcetrxoff();
     
     /* A frame has been received, copy it to our local buffer. */
-    dwt_readrxdata((uint8_t *)&rx_frame, 17, 0); /* No need to read the FCS/CRC. */
+    dwt_readrxdata((uint8_t *)&rx_frame, 30, 0); /* No need to read the FCS/CRC. */
     switch (rx_frame.type){
     case PACKET_TS:
         TS_recevied++;
         tx_frame.seq = 0;
         ts_info = (ts_info_t *) rx_frame.payload;
         tx_timestamp = get_rx_timestamp_u64();
-        tx_timestamp +=  (1200 * UUS_TO_DWT_TIME);
+        //tx_timestamp +=  (1200 * UUS_TO_DWT_TIME);
+        //tx_timestamp +=  (instance_info.tx_dly_us * UUS_TO_DWT_TIME) ;
+        tx_timestamp +=  (ts_info->tx_dly[instance_info.addr] * UUS_TO_DWT_TIME) ;
         tx_timestamp = tx_timestamp >> 8;
         dwt_setdelayedtrxtime(tx_timestamp);
         res = transmit(DWT_START_TX_DELAYED);
+        tx_timestamp +=  (2000 * UUS_TO_DWT_TIME) >> 8;
         if (res != DWT_SUCCESS){
             LOG_ERR("TX failed");
             return;

@@ -29,31 +29,31 @@ int app_main(void){
         
        instance_info.addr = 0x0001;
        default_config.txCode = 11;
-       instance_info.tx_dly_us = 2100;
+       instance_info.tx_dly_us = 2005;
        instance_info.dst_addr = 0x0001;
        instance_sender();
        break;
 
-    case 0x920b25f:
+    case 0x1c5e7e14:
        LOG_INF("Sender 2");
        instance_info.addr = 0x0002;
        default_config.txCode = 10;
-       instance_info.tx_dly_us = 2100;
+       instance_info.tx_dly_us = 2000;
        instance_info.dst_addr = 0x0002;
        instance_sender();
     break;
 
-    case 0xc6d8395a:
+    //case 0xc6d8395a:
     
-       LOG_INF("Sender 3");
-       instance_info.addr = 0x0003;
-       default_config.txCode = 9;
-       instance_info.tx_dly_us = 2100;
-       instance_info.dst_addr = 0x0003;
-       instance_sender();
-    break;
+    //   LOG_INF("Sender 3");
+    //   instance_info.addr = 0x0003;
+    //   default_config.txCode = 9;
+    //   instance_info.tx_dly_us = 2100;
+    //   instance_info.dst_addr = 0x0003;
+    //   instance_sender();
+    //break;
 
-    case 0x29ec415d:
+    case 0xb780eacf:
        LOG_INF("Receiver 1");
        instance_info.addr = 0x0001;
        default_config.rxCode = 11;
@@ -63,7 +63,7 @@ int app_main(void){
 
 
 
-    case 0xce95d98d:
+    case 0xc6d8395a:
        LOG_INF("Receiver 2");
        instance_info.addr = 0x0002;
        default_config.rxCode = 10;

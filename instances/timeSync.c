@@ -2,7 +2,7 @@
 #include "logging/log.h"
 #include "deca_regs.h"
 #include <deca_device_api.h>
-#define TS_FRAME_LEN 16 + 2
+
 
 
 static packet_t timeSync = {
@@ -14,19 +14,24 @@ static packet_t timeSync = {
 };
 
 // static ts_info_t ts_info;
-
+#define TS_PER_ROUND          100
 LOG_MODULE_REGISTER(TIME_SYNC);
 uint16_t ts_duration_ms;
 uint16_t tx_packet_num;
+
+uint16_t ts[11][2] = {{2000, 2000}, {2001, 2000}, {2002, 2000}, {2003, 2000}, {2004, 2000}, {2005, 2000}, {2006, 2000}, {2007, 2000}, {2008, 2000}, {2009, 2000}, {2010, 2000}, {2011, 2000}, {2012, 2000}, {2013, 2000}, {2014, 2000}, {2015, 2000}};
+
+
 void instance_timeSync(){
-    
+    int cnt = 0;
+    int ts_num = 0;
     LOG_INF("Starting TimeSync");
     instance_init();
     
     // ts_duration_ms = 12000;
     // tx_packet_num  = 10000;
     
-    ts_duration_ms = 100;
+    ts_duration_ms = 500;
     tx_packet_num  = 1;
 
 
@@ -34,10 +39,15 @@ void instance_timeSync(){
 
     ts_info->tx_packet_num = tx_packet_num;
     ts_info->tx_session_duration = ts_duration_ms;
+    
 
-    dwt_writetxdata(TS_FRAME_LEN, (uint8_t *)&timeSync, 0);
+    
     while(1){
+        cnt = (ts_num / TS_PER_ROUND) % (sizeof(ts) / 4); 
+        ts_info->tx_dly[1] = ts[cnt][1];
+        ts_info->tx_dly[2] = ts[cnt][0];    
         gpio_set(PORT_DE);
+        dwt_writetxdata(TS_FRAME_LEN, (uint8_t *)&timeSync, 0);
         dwt_writetxfctrl(TS_FRAME_LEN, 0, 0);
         dwt_starttx(DWT_START_TX_IMMEDIATE);
 
@@ -51,7 +61,10 @@ void instance_timeSync(){
         /* Clear TX frame sent event. */
         dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS_BIT_MASK);
         gpio_reset(PORT_DE);
-
+        if (ts_num % TS_PER_ROUND == 0){
+          k_sleep(K_MSEC(1000));
+        }
+        ts_num++;
         k_sleep(K_MSEC(ts_duration_ms));
         // LOG_INF("TS Frame Sent");
 

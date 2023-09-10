@@ -41,6 +41,7 @@ uint16_t first_seq_num = 0xffff;
 uint16_t frame_len, ip_diag_12;
 uint16_t rx_frequencies[3000];
 uint8_t node_PC;
+ts_info_t * rx_ts_info = NULL;
 
 
 static void start_rx_session(void *a, void *b, void *c){
@@ -49,7 +50,8 @@ static void start_rx_session(void *a, void *b, void *c){
   default_config.rxCode = node_PC;
   instance_radio_config();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
-  k_msleep(700);
+  
+  k_msleep(rx_ts_info->tx_session_duration - 100);
   dwt_forcetrxoff();
   default_config.rxCode = 9;
   instance_radio_config();
@@ -98,10 +100,11 @@ uint16_t error_cnt = 0;
 uint8_t flag = 0;
 uint8_t ts_cnt = 0;
 uint16_t looking = 1;
+uint16_t tx_wait_time[2] = {0, 0};
 static void rx_ok_cb(const dwt_cb_data_t *cb_data){
   //dwt_forcetrxoff();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
-  dwt_readrxdata((uint8_t *)&rx_frame, HDR_LEN, 0); /* No need to read the FCS/CRC. */
+  dwt_readrxdata((uint8_t *)&rx_frame, 25, 0); /* No need to read the FCS/CRC. */
   
   switch (rx_frame.type){
     case PACKET_DATA:
@@ -115,33 +118,37 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
         }
 
         //LOG_INF("SEQ:%d", rx_frame.seq);      
-        if(rx_frame.seq > 200 && flag == 0){
-          LOG_INF("data: %d, %d", packet_cnt, error_cnt);  
-          flag = 1;
-        }
+
         rx_frequencies[rx_frame.seq]++;
         packet_cnt++;
       }
     break;
     case PACKET_TS:
-      // LOG_INF("TS data: %d, %d", packet_cnt, error_cnt);
-      packet_cnt = 0;
-      error_cnt = 0;
-      flag = 0;
-      looking = 1;
-      ts_cnt++;
-      // if (ts_cnt >= 20){
-      //  for (int j =0; j < 100; j++){
-      //    printk("%d:%d\n", j, rx_frequencies[j]);
-      //  }
+      //LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
+      rx_ts_info = (ts_info_t *) rx_frame.payload;
+      if(rx_ts_info->tx_packet_num != 1){
+        packet_cnt = 0;
+        error_cnt = 0;
+      }
       
-      // }
+      ts_cnt++;
+      if (tx_wait_time[0] != rx_ts_info->tx_dly[1] || tx_wait_time[1] != rx_ts_info->tx_dly[2]){
+        LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
+        error_cnt = 0;
+        packet_cnt = 0;
+      }
+
+      tx_wait_time[0] = rx_ts_info->tx_dly[1];
+      tx_wait_time[1] = rx_ts_info->tx_dly[2];
+      
+
       k_thread_create(&t_data, rx_stack,
                                  K_THREAD_STACK_SIZEOF(rx_stack),
                                  start_rx_session,
                                  NULL, NULL, NULL,
                                  MY_PRIORITY, 0, K_NO_WAIT);
       
+
     break;
   }
 }

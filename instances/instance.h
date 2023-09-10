@@ -9,6 +9,7 @@ typedef enum{
 }packet_type;
 
 #define HDR_LEN 11
+#define TS_FRAME_LEN 30
 
 typedef struct {
     packet_type type;
@@ -22,6 +23,7 @@ typedef struct {
 typedef struct{
   uint16_t tx_packet_num;
   uint16_t tx_session_duration;
+  uint16_t tx_dly[3];
 }ts_info_t __attribute__((packed));
 
 extern dwt_config_t default_config;
@@ -30,6 +32,7 @@ typedef struct{
   uint16_t addr;
   uint16_t dst_addr;
   uint32_t tx_dly_us;
+  uint32_t tx_init_dly_us;
 }instance_info_t; 
 
 #define LED_RX GPIO_DIR_GDP2_BIT_MASK

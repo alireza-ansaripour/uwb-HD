@@ -56,7 +56,6 @@ void init_LEDs(){
 
 int instance_radio_config(){
     if (dwt_configure(&default_config)){
-        LOG_ERR("CONFIG FAILED");
         return DWT_ERROR;
     }
     txconfig_options.power = 0xffffffff;
