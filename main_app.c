@@ -92,5 +92,4 @@ int app_main(void){
     LOG_INF("Configuring instance");
     
     LOG_INF("Done config");
-    while(1){}
 }

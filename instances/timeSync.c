@@ -30,22 +30,34 @@ void instance_timeSync(){
     
     // ts_duration_ms = 12000;
     // tx_packet_num  = 10000;
-    
-    ts_duration_ms = 500;
-    tx_packet_num  = 1;
+    int tx_count = 0;
+
+    ts_duration_ms = 10000;
+    tx_packet_num  = 100;
 
 
     ts_info_t *ts_info = (ts_info_t *)timeSync.payload;
 
-    ts_info->tx_packet_num = tx_packet_num;
+    
     ts_info->tx_session_duration = ts_duration_ms;
     
-
+    
     
     while(1){
-        cnt = (ts_num / TS_PER_ROUND) % (sizeof(ts) / 4); 
-        ts_info->tx_dly[1] = ts[cnt][1];
-        ts_info->tx_dly[2] = ts[cnt][0];    
+        if (tx_count >= 20){
+          break;
+        }
+        ts_info->tx_dly[1] = 1600;
+        ts_info->tx_dly[2] = 1600;
+        LOG_INF("TX NUM %d", tx_packet_num);
+        ts_info->tx_packet_num = tx_packet_num;
+        tx_packet_num += 100;
+        if (tx_packet_num >= 4000){
+          tx_packet_num = 100;
+          tx_count++;
+        } 
+
+            
         gpio_set(PORT_DE);
         dwt_writetxdata(TS_FRAME_LEN, (uint8_t *)&timeSync, 0);
         dwt_writetxfctrl(TS_FRAME_LEN, 0, 0);
@@ -69,4 +81,5 @@ void instance_timeSync(){
         // LOG_INF("TS Frame Sent");
 
     }
+    while(1){}
 }

@@ -51,7 +51,7 @@ static void start_rx_session(void *a, void *b, void *c){
   instance_radio_config();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
   
-  k_msleep(rx_ts_info->tx_session_duration - 100);
+  k_msleep(rx_ts_info->tx_session_duration - 10);
   dwt_forcetrxoff();
   default_config.rxCode = 9;
   instance_radio_config();
@@ -95,8 +95,8 @@ void instance_receiver(){
 }
 
 
-uint16_t packet_cnt = 0;
-uint16_t error_cnt = 0;
+uint32_t packet_cnt = 0;
+uint32_t error_cnt = 0;
 uint8_t flag = 0;
 uint8_t ts_cnt = 0;
 uint16_t looking = 1;
@@ -104,27 +104,17 @@ uint16_t tx_wait_time[2] = {0, 0};
 static void rx_ok_cb(const dwt_cb_data_t *cb_data){
   //dwt_forcetrxoff();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
-  dwt_readrxdata((uint8_t *)&rx_frame, 25, 0); /* No need to read the FCS/CRC. */
+  dwt_readrxdata((uint8_t *)&rx_frame, 17, 0); /* No need to read the FCS/CRC. */
   
   switch (rx_frame.type){
     case PACKET_DATA:
       // LOG_INF("SEQ: %d", rx_frame.seq);
       if (instance_info.addr == rx_frame.dst){
-        if (looking == rx_frame.seq){
-          looking++;
-        }else{
-          // dwt_forcetrxoff();
-          // LOG_INF("FRAME LOSS: %ld", looking);
-        }
-
-        //LOG_INF("SEQ:%d", rx_frame.seq);      
-
-        rx_frequencies[rx_frame.seq]++;
         packet_cnt++;
       }
     break;
     case PACKET_TS:
-      //LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
+      LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
       rx_ts_info = (ts_info_t *) rx_frame.payload;
       if(rx_ts_info->tx_packet_num != 1){
         packet_cnt = 0;
@@ -132,21 +122,25 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
       }
       
       ts_cnt++;
-      if (tx_wait_time[0] != rx_ts_info->tx_dly[1] || tx_wait_time[1] != rx_ts_info->tx_dly[2]){
-        LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
-        error_cnt = 0;
-        packet_cnt = 0;
-      }
+      //if (tx_wait_time[0] != rx_ts_info->tx_dly[1] || tx_wait_time[1] != rx_ts_info->tx_dly[2]){
+      //  LOG_INF("TS %d, %d:err:%d, cnt:%d", tx_wait_time[0], tx_wait_time[1], error_cnt, packet_cnt);
+      //  error_cnt = 0;
+      //  packet_cnt = 0;
+      //}
 
-      tx_wait_time[0] = rx_ts_info->tx_dly[1];
-      tx_wait_time[1] = rx_ts_info->tx_dly[2];
+      //tx_wait_time[0] = rx_ts_info->tx_dly[1];
+      //tx_wait_time[1] = rx_ts_info->tx_dly[2];
+      //dwt_forcetrxoff();
+      //default_config.rxCode = node_PC;
+      //instance_radio_config();
+      //dwt_rxenable(DWT_START_RX_IMMEDIATE);      
       
-
       k_thread_create(&t_data, rx_stack,
                                  K_THREAD_STACK_SIZEOF(rx_stack),
                                  start_rx_session,
                                  NULL, NULL, NULL,
                                  MY_PRIORITY, 0, K_NO_WAIT);
+      
       
 
     break;

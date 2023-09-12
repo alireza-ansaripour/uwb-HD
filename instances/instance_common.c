@@ -95,7 +95,6 @@ void instance_init(){
     res = instance_radio_config();
     if(res == DWT_ERROR){
         LOG_ERR("INIT FAILED");
-        while (1) { /* spin */ };
     }
     
 }
