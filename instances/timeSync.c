@@ -32,7 +32,7 @@ void instance_timeSync(){
     // tx_packet_num  = 10000;
     int tx_count = 0;
 
-    ts_duration_ms = 10000;
+    ts_duration_ms = 11000;
     tx_packet_num  = 100;
 
 
@@ -44,7 +44,7 @@ void instance_timeSync(){
     
     
     while(1){
-        if (tx_count >= 20){
+        if (tx_count >= 30){
           break;
         }
         ts_info->tx_dly[1] = 1600;
@@ -52,7 +52,7 @@ void instance_timeSync(){
         LOG_INF("TX NUM %d", tx_packet_num);
         ts_info->tx_packet_num = tx_packet_num;
         tx_packet_num += 100;
-        if (tx_packet_num >= 4000){
+        if (tx_packet_num >= 5000){
           tx_packet_num = 100;
           tx_count++;
         } 
