@@ -6,11 +6,10 @@
 #include <shared_defines.h>
 
 //zephyr includes
-#include <zephyr.h>
-#include <sys/printk.h>
+#include "zephyr/kernel.h"
 
 #define LOG_LEVEL 3
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(instance_common);
 instance_info_t instance_info; 
 

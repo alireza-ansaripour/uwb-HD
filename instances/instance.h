@@ -2,10 +2,12 @@
 #define _INSTANCE_H
 #include "deca_device_api.h"
 #include "deca_types.h"
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 typedef enum{
     PACKET_TS = 0,
-    PACKET_DATA
+    PACKET_DATA,
+    PACKET_ACK,
+    PACKET_TS_ACK,
 }packet_type;
 
 #define HDR_LEN 11
@@ -25,6 +27,14 @@ typedef struct{
   uint16_t tx_session_duration;
   uint16_t tx_dly[3];
 }ts_info_t __attribute__((packed));
+
+
+typedef struct{
+  uint16_t pkt_recv_cnt;
+  uint16_t error_cnt;
+}ack_info_t __attribute__((packed));
+
+
 
 extern dwt_config_t default_config;
 

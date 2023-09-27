@@ -1,10 +1,9 @@
 
 //zephyr includes
-#include <zephyr.h>
-#include <sys/printk.h>
+#include "zephyr/kernel.h"
 
 #define LOG_LEVEL 3
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #include "dk_buttons_and_leds.h"
 LOG_MODULE_REGISTER(simple_tx);
 
@@ -24,8 +23,8 @@ int app_main(void){
        break;
 
 
-    case 0xccd1a0cf:
-       LOG_INF("Sender 1");
+    case 0x29ec415d:
+       LOG_INF("Sender 1\n");
         
        instance_info.addr = 0x0001;
        default_config.txCode = 11;
@@ -35,7 +34,7 @@ int app_main(void){
        break;
 
     case 0x1c5e7e14:
-       LOG_INF("Sender 2");
+       printk("Sender 2\n");
        instance_info.addr = 0x0002;
        default_config.txCode = 10;
        instance_info.tx_dly_us = 2000;
@@ -43,28 +42,39 @@ int app_main(void){
        instance_sender();
     break;
 
-    //case 0xc6d8395a:
+    case 0xc6d8395a:
     
-    //   LOG_INF("Sender 3");
-    //   instance_info.addr = 0x0003;
-    //   default_config.txCode = 9;
-    //   instance_info.tx_dly_us = 2100;
-    //   instance_info.dst_addr = 0x0003;
-    //   instance_sender();
-    //break;
+       LOG_INF("Sender 3\n");
+       instance_info.addr = 0x0003;
+       default_config.txCode = 20;
+       instance_info.tx_dly_us = 2100;
+       instance_info.dst_addr = 0x0003;
+       instance_sender();
+    break;
+
+    case 0x920b25f:
+       LOG_INF("Sender 4\n");
+       instance_info.addr = 0x0004;
+       default_config.txCode = 12;
+       instance_info.tx_dly_us = 2100;
+       instance_info.dst_addr = 0x0003;
+       instance_sender();
+    break;
+
 
     case 0xb780eacf:
-       LOG_INF("Receiver 1");
+       LOG_INF("Receiver 1\n");
        instance_info.addr = 0x0001;
        default_config.rxCode = 11;
+       default_config.txCode = 11;
        instance_info.tx_dly_us = 2000;
        instance_receiver();
        break;
 
 
 
-    case 0xc6d8395a:
-       LOG_INF("Receiver 2");
+    case 0xf01065cf:
+       printk("Receiver 2\n");
        instance_info.addr = 0x0002;
        default_config.rxCode = 10;
        instance_info.tx_dly_us = 2000;
@@ -72,18 +82,19 @@ int app_main(void){
        instance_receiver();
        break;
     
-    case 0xe8d125b7:
+    case 0xccd1a0cf:
     
-       LOG_INF("Receiver 3");
+       LOG_INF("Receiver 3\n");
        instance_info.addr = 0x0003;
-       default_config.rxCode = 9;
+       default_config.rxCode = 20;
+       default_config.txCode = 20;
        instance_info.tx_dly_us = 2000;
         
        instance_receiver();
        break;
 
     default:
-       LOG_INF("DEV_ID: 0x%x", dev_id);
+       LOG_INF("DEV_ID: 0x%x\n", dev_id);
        break;
     }
 
