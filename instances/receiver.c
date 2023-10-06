@@ -62,50 +62,10 @@ static void start_rx_session(void *a, void *b, void *c){
   instance_radio_config();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
   k_msleep(rx_ts_info->tx_session_duration - 5);
-  dwt_forcetrxoff();
   default_config.rxCode = 9;
+  dwt_forcetrxoff();
   instance_radio_config();
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
-}
-
-
-
-static void send_ack_msg(void *a, void *b, void *c){
-  //LOG_INF("START RX SESSION");
-  int res;
-  dwt_forcetrxoff();
-  // default_config.txCode = node_PC;
-  // instance_radio_config();
-  // k_msleep(2);
-  dwt_writetxfctrl(40, 0, 0);
-  ack_frame.type = PACKET_ACK;
-  ack_frame.dst = instance_info.addr;
-  ack_info_t * ack_payload = (ack_info_t *) ack_frame.payload;
-  ack_payload->pkt_recv_cnt = looking;
-  ack_payload->error_cnt = error_cnt;
-  dwt_writetxdata(40, (uint8_t *) &ack_frame, 0);
-  // dwt_setdelayedtrxtime(dwt_readrxtimestamphi32() + (uint32_t) ((850 * UUS_TO_DWT_TIME) >> 8) );
-  dwt_setdelayedtrxtime(dwt_readrxtimestamphi32() + (uint32_t) ((1000 * UUS_TO_DWT_TIME) >> 8) );
-  res = dwt_starttx(DWT_START_TX_DELAYED);
-  if (res != DWT_SUCCESS){
-    LOG_ERR("TX alireza failed");
-    dwt_forcetrxoff();
-  }
-
-
-
-
-  k_msleep(5);
-  dwt_forcetrxoff();
-  default_config.rxCode = 9;
-  instance_radio_config();
-  dwt_rxenable(DWT_START_RX_IMMEDIATE);
-  LOG_INF("TS:err:%d, cnt:%d\n",error_cnt, packet_cnt);
-  packet_cnt = 0;
-  error_cnt = 0;
-
-
-
 }
 
 
@@ -151,6 +111,7 @@ uint16_t loss_cnt;
 int loss_diff;
 int rx_cnt = 0; 
 static void rx_ok_cb(const dwt_cb_data_t *cb_data){
+  int res;
   rx_timestamp = 0;
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
   dwt_readrxdata((uint8_t *)&rx_frame, 17, 0); /* No need to read the FCS/CRC. */
@@ -158,14 +119,21 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
 
   case PACKET_TS_ACK:
     dwt_forcetrxoff();
-    k_thread_create(&t_data, rx_stack,
-                K_THREAD_STACK_SIZEOF(rx_stack),
-                send_ack_msg,
-                NULL, NULL, NULL,
-                MY_PRIORITY, 0, K_NO_WAIT);
+    dwt_writetxfctrl(40, 0, 0);
+    ack_frame.type = PACKET_ACK;
+    ack_frame.dst = instance_info.addr;
+    ack_info_t * ack_payload = (ack_info_t *) ack_frame.payload;
+    ack_payload->pkt_recv_cnt = looking;
+    ack_payload->error_cnt = error_cnt;
     
-    LOG_INF("ACK INFO: %d, %d", rx_cnt, looking);
-    break;
+    dwt_setdelayedtrxtime(dwt_readrxtimestamphi32() + (uint32_t) ((1000 * UUS_TO_DWT_TIME) >> 8) );
+    res = dwt_starttx(DWT_START_TX_DELAYED);
+    dwt_writetxdata(40, (uint8_t *) &ack_frame, 0);
+    if (res != DWT_SUCCESS){
+      LOG_ERR("TX alireza failed");
+      dwt_forcetrxoff();
+    }
+  break;
 
   case PACKET_TS:
     loss_cnt = 0;
@@ -213,6 +181,7 @@ static void rx_err_cb(const dwt_cb_data_t *cb_data){
 
 static void tx_ok_cb(const dwt_cb_data_t *cb_data){
   dwt_forcetrxoff();
+  LOG_INF("DDDDDDDDDDDDDDDDDDDDDDDDDDD");
   //error_cnt ++;
   dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }

@@ -90,7 +90,7 @@ void instance_timeSync(){
         gpio_reset(PORT_DE);
         ts_num++;
         LOG_INF("TS NUM %d", timeSync_ack.seq);
-        k_sleep(K_MSEC(10));
+        k_sleep(K_MSEC(5));
         
 
     }

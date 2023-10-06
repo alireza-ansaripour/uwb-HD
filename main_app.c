@@ -91,8 +91,19 @@ int app_main(void){
        instance_info.tx_dly_us = 2000;
         
        instance_receiver();
-       break;
+      break;
 
+      case 0xf5330684:
+
+       LOG_INF("Receiver 4\n");
+       instance_info.addr = 0x0003;
+       default_config.rxCode = 12;
+       default_config.txCode = 12;
+       instance_info.tx_dly_us = 2000;
+        
+       instance_receiver();
+      break;
+      
     default:
        LOG_INF("DEV_ID: 0x%x\n", dev_id);
        break;

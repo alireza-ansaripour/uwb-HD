@@ -61,12 +61,11 @@ static int8_t uCurrentTrim_val;
 int cnt = 0;
 static void start_sending_data(void *a1, void* a2, void*a3){
     int res;
-    k_sleep(K_MSEC(ts_info->tx_session_duration - 5));
     dwt_forcetrxoff();
     default_config.rxCode = default_config.txCode;
     instance_radio_config();
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
-    k_msleep(10);
+    k_msleep(5);
     dwt_forcetrxoff();
     if(next_seq_num >= 5000){
         end = k_uptime_get_32();
@@ -78,33 +77,6 @@ static void start_sending_data(void *a1, void* a2, void*a3){
     dwt_rxenable(DWT_START_RX_IMMEDIATE);
 }
 
-
-static void listen_to_ack(void *a1, void *a2, void *a3){
-    // LOG_INF("Listening to ACK");
-    // k_msleep(10);
-//   default_config.rxCode = default_config.txCode;
-//   instance_radio_config();
-//   dwt_rxenable(DWT_START_RX_IMMEDIATE);
-//    k_msleep(5);
-//     if (next_seq_num >= 5000){
-//     dwt_forcetrxoff();
-//         LOG_INF("TX_DONE %d, %d", TS_recevied, last_ts_seq);
-//     }else{
-//         dwt_forcetrxoff();
-//         default_config.rxCode = 9;
-//         instance_radio_config();
-//         dwt_rxenable(DWT_START_RX_IMMEDIATE);
-//     }
-   
-}
-
-static void listen_to_ts(void *a1, void *a2, void *a3){
-  dwt_forcetrxoff();
-  default_config.rxCode = 9;
-  instance_radio_config();
-  dwt_rxenable(DWT_START_RX_IMMEDIATE);
-
-}
 
 float abs(float num){
     if (num > 0)
@@ -162,11 +134,17 @@ static void tx_conf_cb(const dwt_cb_data_t *cb_data){
         tx_frame.seq++;
 
     if (tx_frame.seq > end_seq_for_session){
-        dwt_forcetrxoff();
-       return;
+        
+        k_thread_create(&my_thread_data, my_stack_area,
+                            K_THREAD_STACK_SIZEOF(my_stack_area),
+                            start_sending_data,
+                            NULL, NULL, NULL,
+                            MY_PRIORITY, 0, K_NO_WAIT);
+        
+        return;
     }
     dwt_setdelayedtrxtime(tx_timestamp);
-    dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
+    // dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
     res = dwt_starttx(DWT_START_RX_DELAYED);
     dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
     if (res != DWT_SUCCESS){
@@ -198,7 +176,7 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
     dwt_readrxdata((uint8_t *)&rx_frame, cb_data->datalength, 0); /* No need to read the FCS/CRC. */
     switch (rx_frame.type){
     case PACKET_TS:
-        if(start == 0){
+        if(rx_frame.seq == 1){
             start = k_uptime_get_32();
         }
         TS_recevied++;
@@ -207,7 +185,7 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
         last_ts_seq = rx_frame.seq;
         end_seq_for_session = next_seq_num + ts_info->tx_packet_num;
         dwt_writetxfctrl(TX_FRAME_LEN, 0, 0);
-        tx_timestamp = dwt_readrxtimestamphi32() + (uint32_t) ((2000 * UUS_TO_DWT_TIME) >> 8);
+        tx_timestamp = dwt_readrxtimestamphi32() + (uint32_t) ((1500 * UUS_TO_DWT_TIME) >> 8);
         dwt_setdelayedtrxtime(tx_timestamp);
         res = dwt_starttx(DWT_START_TX_DELAYED);
         dwt_writetxdata(HDR_LEN + 2, (uint8_t *) &tx_frame, 0);
@@ -216,22 +194,10 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
         return res;
         }
         
-        tx_timestamp +=  (2000 * UUS_TO_DWT_TIME) >> 8;
-        k_thread_create(&my_thread_data, my_stack_area,
-                                  K_THREAD_STACK_SIZEOF(my_stack_area),
-                                  start_sending_data,
-                                  NULL, NULL, NULL,
-                                  MY_PRIORITY, 0, K_NO_WAIT);
+        tx_timestamp +=  (1650 * UUS_TO_DWT_TIME) >> 8;
         LOG_INF("TS received %d", next_seq_num);
         
     break;
-    case PACKET_TS_ACK:
-      dwt_forcetrxoff();
-      dwt_rxenable(DWT_START_RX_IMMEDIATE);
-        
-    //   LOG_INF("TS ACK %d", rx_frame.seq);
-      ts_ack_cnt2++;
-    //   LOG_INF("SUMMARY: TS CNT: %d, TS ACK CNT:%d, ACK CNT:%d", TS_recevied, ts_ack_cnt2, ack_cnt);
 
     break;
     case PACKET_ACK:
@@ -240,10 +206,6 @@ static void rx_ok_cb(const dwt_cb_data_t *cb_data){
       LOG_INF("ACK:%d, %d, %d", ack_frame->pkt_recv_cnt, ack_frame->pkt_recv_cnt - previous_ack, last_ts_seq);
       next_seq_num = ack_frame->pkt_recv_cnt;
       previous_ack = ack_frame->pkt_recv_cnt;
-
-   
-
-
       ack_cnt++;
     break;
       
